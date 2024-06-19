@@ -1,5 +1,11 @@
 # Laravel Cheatsheet
 
+## Command
+- Create middleware
+```
+php artisan make:middleware EnsureTokenIsValid
+```
+
 ## Routes
 ```
 - route param:
@@ -17,7 +23,7 @@
       });
   });
 
-  - namespace: Help oranize controller
+  - namespace: Helpe organize controllers
   Route::namespace('Admin')->group(function () {
     // Controllers within the "App\Http\Controllers\Admin" namespace
 
@@ -117,11 +123,222 @@
 ## Response
 
 ## Database
+- Query builder
+1. Query
+
+    - Selecting All Rows
+    ```
+    $users = DB::table('users')->get();
+    ```
+    - Selecting Specific Columns
+    ```
+    $users = DB::table('users')->select('name', 'email')->get();
+    ```
+    - Where Clauses
+    ```
+    $users = DB::table('users')->where('status', 'active')->get();
+    ```
+    - Basic Pagination
+    ```
+    $users = DB::table('users')->paginate(15);
+    ```
+2. Inserting Data
+
+    - Single Row
+    ```
+    DB::table('users')->insert([
+        'name' => 'John Doe',
+        'email' => 'john@example.com',
+        'password' => bcrypt('secret'),
+    ]);
+    ```
+    - Multiple Rows
+    ```
+    DB::table('users')->insert([
+        ['name' => 'John Doe', 'email' => 'john@example.com', 'password' => bcrypt('secret')],
+        ['name' => 'Jane Doe', 'email' => 'jane@example.com', 'password' => bcrypt('secret')]
+    ]);
+    ```
+3. Updating Data
+
+    - Basic Update
+    ```
+    DB::table('users')
+    ->where('id', 1)
+    ->update(['name' => 'John Smith']);
+    ```
+    - Increment/Decrement
+    ```
+    DB::table('users')->increment('votes');
+    DB::table('users')->decrement('votes', 5);
+    ```
+4. Deleting Data
+
+    - Delete Rows
+    ```
+    DB::table('users')->where('votes', '<', 100)->delete();
+    ```
+    - Truncate Table
+    ```
+    DB::table('users')->truncate();
+    ```
+5. Aggregates  
+
+    - Count, Max, Min, Avg, Sum
+    ```
+    $count = DB::table('users')->count();
+    $max = DB::table('users')->max('price');
+    $min = DB::table('users')->min('price');
+    $avg = DB::table('users')->avg('price');
+    $sum = DB::table('users')->sum('price');
+    ```
+6. Joins
+
+    - Inner Join
+    ```
+    $users = DB::table('users')
+            ->join('contacts', 'users.id', '=', 'contacts.user_id')
+            ->select('users.*', 'contacts.phone')
+            ->get();
+    ```
+    - Left Join
+    ```
+    $users = DB::table('users')
+            ->leftJoin('posts', 'users.id', '=', 'posts.user_id')
+            ->get();
+    ```
+7. Advanced Where Clauses
+
+    - OR Clauses
+    ```
+    $users = DB::table('users')
+            ->where('name', '=', 'John')
+            ->orWhere('age', '>', 25)
+            ->get();
+    ```
+    - Where Between
+    ```
+    $users = DB::table('users')
+            ->whereBetween('votes', [1, 100])
+            ->get();
+    ```
+    - Where In
+    ```
+    $users = DB::table('users')
+            ->whereIn('id', [1, 2, 3])
+            ->get();
+    ```
+    - Where Null
+    ```
+    $users = DB::table('users')
+            ->whereNull('updated_at')
+            ->get();
+    ```
+8. Ordering and Grouping
+
+    - Order By
+    ```
+    $users = DB::table('users')
+            ->orderBy('name', 'desc')
+            ->get();
+    ```
+    - Group By
+    ```
+    $users = DB::table('users')
+            ->select('department', DB::raw('count(*) as total'))
+            ->groupBy('department')
+            ->get();
+    ```
+9. Subqueries    
+
+    - Select Subquery
+    ```
+    $latestPosts = DB::table('posts')
+                 ->select('user_id', DB::raw('MAX(created_at) as last_post_created_at'))
+                 ->groupBy('user_id');
+
+    $users = DB::table('users')
+            ->joinSub($latestPosts, 'latest_posts', function ($join) {
+                $join->on('users.id', '=', 'latest_posts.user_id');
+            })->get();
+    ```
+    - Union All
+
+        Example1:
+        ```
+        $first = DB::table('users')
+                ->whereNull('first_name');
+
+        $users = DB::table('users')
+                    ->whereNull('last_name')
+                    ->union($first)
+                    ->get();
+
+        ```
+        Example2:
+        ```
+        $firstQuery = DB::table('users')
+                        ->whereNull('first_name')
+                        ->select('id', 'name', 'role');
+
+        $secondQuery = DB::table('admins')
+                        ->select('id', 'name', 'role');
+
+        $results = $firstQuery->unionAll($secondQuery)->get();
+
+        ```
+10. Raw Expressions
+    - Raw Select
+    ```
+    $users = DB::table('users')
+            ->select(DB::raw('count(*) as user_count, status'))
+            ->where('status', '!=', 1)
+            ->groupBy('status')
+            ->get();
+    ```
+    - Where Raw
+    ```
+    $users = DB::table('users')
+            ->whereRaw('age > ? and votes = 100', [25])
+            ->get();
+    ```
+11. JSON Operations
+
+    - Where JSON Field
+    ```
+    $users = DB::table('users')
+            ->whereJsonContains('options->languages', 'en')
+            ->get();
+    ```
+    - Updating JSON Fields
+    ```
+    DB::table('users')
+        ->where('id', 1)
+        ->update(['options->enabled' => true]);
+    ```
+12. Performance Optimization
+
+    - Chunking Results
+    ```
+    DB::table('users')->orderBy('id')->chunk(100, function ($users) {
+        foreach ($users as $user) {
+            // Process each user...
+        }
+    });
+    ```
+    - Caching Queries
+    ```
+    $users = Cache::remember('users', 60, function () {
+        return DB::table('users')->get();
+    });
+    ```
+
+## Middleware
 
 ## Tip and Tric
-
-## Road Map:
-- Database
-- 
+- Why use ::class?
+    - Refactor safety: make your code more maintainable. If you rename the class or change it's namespace, most modern IDEs will automatically update all instance of class
+    - Readability
+    - Avoid magic string 
 
 
